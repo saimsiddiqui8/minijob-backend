@@ -1,4 +1,5 @@
 import { emailSubscription } from "../models/email-subscribe.model.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import { tryCatch } from "../utils/tryCatch.js";
 
 // Express endpoint to serve the jobs
