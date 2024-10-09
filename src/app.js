@@ -12,12 +12,14 @@ app.use(express.json());
 
 //routes import
 import jobRouter from './routes/jobs.routes.js'
+import emailSubscriptionRouter from "./routes/email-subscription.routes.js"
 
 app.get("/test", (req, res) => {
     res.send("MiniJob Germany!");
 });
 
 app.use("/api/v1/job", jobRouter)
+app.use("/api/v1/email-subscribe", emailSubscriptionRouter)
 
 
 // Error handling middleware
