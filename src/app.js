@@ -1,5 +1,6 @@
 import express from "express"
 import cors from "cors"
+import os from "os";
 
 const app = express()
 app.use(cors({
@@ -8,11 +9,26 @@ app.use(cors({
 }))
 app.use(express.static("public"))
 app.use(express.json());
-
+app.set('trust proxy', true)
 
 //routes import
 import jobRouter from './routes/jobs.routes.js'
 import emailSubscriptionRouter from "./routes/email-subscription.routes.js"
+
+app.get("/", (req, res) => {
+    const serverIp = Object.values(os.networkInterfaces())
+        .flat()
+        .find((iface) => iface.family === "IPv4" && !iface.internal)?.address || "Unknown IP";
+
+    res.send({
+        message: "Server is running",
+        serverIp,
+        port: process.env.PORT,
+        uptime: `${process.uptime().toFixed(2)} seconds`,
+        timestamp: new Date().toISOString(),
+        hostname: os.hostname(),
+    });
+});
 
 app.get("/test", (req, res) => {
     res.send("MiniJob Germany!");
