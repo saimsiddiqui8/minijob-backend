@@ -17,19 +17,19 @@ const client = Redis.createClient({
 });
 
 // Connect to Redis
-client.connect()
-    .then(() => console.log('Connected to Redis!'))
-    .catch(console.error);
+// client.connect()
+//     .then(() => console.log('Connected to Redis!'))
+//     .catch(console.error);
 
-// Log if connected
-client.on('connect', () => {
-    console.log('Redis client connected successfully.');
-});
+// // Log if connected
+// client.on('connect', () => {
+//     console.log('Redis client connected successfully.');
+// });
 
-// Handle any errors
-client.on('error', (err) => {
-    console.error('Redis connection error:', err);
-});
+// // Handle any errors
+// client.on('error', (err) => {
+//     console.error('Redis connection error:', err);
+// });
 
 export const getAllJobs = tryCatch(async (req, res) => {
     const jobs = await Job.find().sort({ createdAt: -1 });
