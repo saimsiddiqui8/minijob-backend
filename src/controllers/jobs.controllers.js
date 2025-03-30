@@ -1,227 +1,243 @@
 import { Job } from "../models/jobs.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { notFound } from "../utils/notFound.js";
 import { tryCatch } from "../utils/tryCatch.js";
 import { validateRequiredFields } from "../utils/validations.js";
 import { XMLBuilder } from "fast-xml-parser";
-import Redis from "redis";
-import cron from "node-cron";
 import axios from "axios";
 import sax from "sax";
 import mongoose from "mongoose";
 const { SAXParser } = sax;
 
 export const getAllJobs = tryCatch(async (req, res) => {
-  const jobs = await Job.find().sort({ createdAt: -1 });
-  if (!jobs || jobs.length === 0) {
-    return res
-      .status(404)
-      .json({ status: 404, success: false, message: "No Jobs Found" });
-  }
-  return res.status(200).json(new ApiResponse(200, "", jobs));
+    const jobs = await Job.find().sort({ createdAt: -1 });
+    if (!jobs || jobs.length === 0) {
+        return res
+            .status(404)
+            .json({ status: 404, success: false, message: "No Jobs Found" });
+    }
+    return res.status(200).json(new ApiResponse(200, "", jobs));
 });
 
-export const getPartTimeJobs = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const jobtype = "Part-time";
-  const skip = (page - 1) * limit;
+export const getJobsByType = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const { jobtype } = req.body;
+    if (
+        ![
+            "Part-time",
+            "Full-time",
+            "Part-time, Full-time",
+            "Full-time, Part-time",
+            "Internship",
+            "Temporary, Full-time",
+            "Temporary",
+            "Temporary, Part-time",
+            "Internship, Part-time",
+            "Full-time, Internship",
+        ].includes(jobtype)
+    )
+        return res
+            .status(404)
+            .json(new ApiResponse(404, "Invalid Job type"));
 
-  const [jobs, total] = await Promise.all([
-    Job.find({ jobtype })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(), // ⚡ lean makes it faster
-    Job.countDocuments({ jobtype }),
-  ]);
 
-  return res.status(200).json(
-    new ApiResponse(200, "", {
-      statusCode: 200,
-      data: jobs,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-      success: true,
-    }),
-  );
+    const skip = (page - 1) * limit;
+
+    const [jobs, total] = await Promise.all([
+        Job.find({ jobtype })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(), // ⚡ lean makes it faster
+        Job.countDocuments({ jobtype }),
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, "", {
+            statusCode: 200,
+            data: jobs,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            success: true,
+        }),
+    );
 };
 
 export const getJobById = tryCatch(async (req, res) => {
-  const id = req.params.id;
+    const id = req.params.id;
 
-  let job;
-  if (mongoose.Types.ObjectId.isValid(id)) {
-    job = await Job.findById(id);
-  } else {
-    job = await Job.findOne({ guid: id });
-  }
+    let job;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        job = await Job.findById(id);
+    } else {
+        job = await Job.findOne({ guid: id });
+    }
 
-  if (!job) {
-    return res.status(404).json({
-      status: 404,
-      success: false,
-      message: "Failed to find this job",
-    });
-  }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Job retrieved successfully", job));
+    if (!job) {
+        return res.status(404).json({
+            status: 404,
+            success: false,
+            message: "Failed to find this job",
+        });
+    }
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "Job retrieved successfully", job));
 });
 
 export const getJobTitleSuggestions = async (req, res) => {
-  const { q } = req.query; // query string: /jobs/suggest?q=finanz
+    const { q } = req.query; // query string: /jobs/suggest?q=finanz
 
-  if (!q || q.trim().length < 2) {
-    return res.status(400).json({
-      statusCode: 400,
-      success: false,
-      message: "Query must be at least 2 characters long",
-    });
-  }
+    if (!q || q.trim().length < 2) {
+        return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Query must be at least 2 characters long",
+        });
+    }
 
-  const suggestions = await Job.find({
-    title: { $regex: q, $options: "i" }, // case-insensitive match
-  })
-    .limit(10) // limit for dropdown
-    .select("title _id guid")
-    .lean();
-    
-  return res.status(200).json(
-    new ApiResponse(200, "Job deleted successfully", {
-      statusCode: 200,
-      success: true,
-      data: suggestions,
-    }),
-  );
+    const suggestions = await Job.find({
+        title: { $regex: q, $options: "i" }, // case-insensitive match
+    })
+        .limit(10) // limit for dropdown
+        .select("title _id guid")
+        .lean();
+
+    return res.status(200).json(
+        new ApiResponse(200, "Job deleted successfully", {
+            statusCode: 200,
+            success: true,
+            data: suggestions,
+        }),
+    );
 };
 
 export const deleteJob = tryCatch(async (req, res) => {
-  const jobId = req.params.id;
-  const deletedJob = await Job.findByIdAndDelete(jobId);
-  if (!deletedJob) {
-    return res
-      .status(404)
-      .json({ status: 404, success: false, message: "Job not found" });
-  }
-  return res.status(200).json(new ApiResponse(200, "Job deleted successfully"));
+    const jobId = req.params.id;
+    const deletedJob = await Job.findByIdAndDelete(jobId);
+    if (!deletedJob) {
+        return res
+            .status(404)
+            .json({ status: 404, success: false, message: "Job not found" });
+    }
+    return res.status(200).json(new ApiResponse(200, "Job deleted successfully"));
 });
 
 export const getJobsByFilter = tryCatch(async (req, res) => {
-  // Extract query parameters
-  const { keyword, location, careerLevel, category } = req.query;
+    // Extract query parameters
+    const { keyword, location, careerLevel, category } = req.query;
 
-  // Construct the query object
-  let query = {};
+    // Construct the query object
+    let query = {};
 
-  if (keyword) {
-    // Use regular expression for case-insensitive partial matching
-    query.title = { $regex: keyword, $options: "i" };
-  }
+    if (keyword) {
+        // Use regular expression for case-insensitive partial matching
+        query.title = { $regex: keyword, $options: "i" };
+    }
 
-  if (location && location !== "Location") {
-    query["location.city"] = { $regex: location, $options: "i" };
-  }
+    if (location && location !== "Location") {
+        query["location.city"] = { $regex: location, $options: "i" };
+    }
 
-  if (careerLevel && careerLevel !== "Career Level") {
-    query.careerLevel = careerLevel;
-  }
-  if (category && category !== "Category") {
-    query.category = category;
-  }
+    if (careerLevel && careerLevel !== "Career Level") {
+        query.careerLevel = careerLevel;
+    }
+    if (category && category !== "Category") {
+        query.category = category;
+    }
 
-  // Fetch jobs based on the constructed query
-  const jobs = await Job.find(query).sort({ createdAt: -1 });
+    // Fetch jobs based on the constructed query
+    const jobs = await Job.find(query).sort({ createdAt: -1 });
 
-  if (!jobs || jobs.length === 0) {
-    return res
-      .status(404)
-      .json({ status: 404, success: false, message: "No Jobs Found" });
-  }
+    if (!jobs || jobs.length === 0) {
+        return res
+            .status(404)
+            .json({ status: 404, success: false, message: "No Jobs Found" });
+    }
 
-  return res.status(200).json(new ApiResponse(200, "", jobs));
+    return res.status(200).json(new ApiResponse(200, "", jobs));
 });
 
 // const feedUrl = 'https://feed.stepstone.de/partner/files/FD6E3D39-9567-4371-AF2F-4C2EA060ABE0/638D844C-A648-4FCF-94B2-BEB217B0C197';
 const feedUrl =
-  "https://de.jooble.org/affiliate_feed/KgYKLwsbCgIXNQIFKBgrMCg+GCsh.xml";
+    "https://de.jooble.org/affiliate_feed/KgYKLwsbCgIXNQIFKBgrMCg+GCsh.xml";
 export const fetchJobs = async () => {
-  try {
-    console.log("Fetching jobs...");
+    try {
+        console.log("Fetching jobs...");
 
-    const response = await axios.get(feedUrl, { responseType: "stream" });
-    const parser = new SAXParser(true);
+        const response = await axios.get(feedUrl, { responseType: "stream" });
+        const parser = new SAXParser(true);
 
-    let currentJob = null;
-    let currentTag = "";
+        let currentJob = null;
+        let currentTag = "";
 
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    // Pause the stream reference for control
-    const stream = response.data;
+        // Pause the stream reference for control
+        const stream = response.data;
 
-    parser.onopentag = (node) => {
-      if (node.name === "job") {
-        currentJob = {};
-      }
-      currentTag = node.name;
-    };
+        parser.onopentag = (node) => {
+            if (node.name === "job") {
+                currentJob = {};
+            }
+            currentTag = node.name;
+        };
 
-    parser.oncdata = (cdata) => {
-      if (currentJob && currentTag) {
-        currentJob[currentTag] = (currentJob[currentTag] || "") + cdata.trim();
-      }
-    };
+        parser.oncdata = (cdata) => {
+            if (currentJob && currentTag) {
+                currentJob[currentTag] = (currentJob[currentTag] || "") + cdata.trim();
+            }
+        };
 
-    parser.onclosetag = async (tagName) => {
-      if (tagName === "job" && currentJob && currentJob.guid) {
-        try {
-          if (!currentJob.guid) return;
-          await Job.updateOne(
-            { guid: currentJob.guid },
-            { $set: currentJob },
-            { upsert: true },
-          );
-          console.log(`✅ Upserted job: ${currentJob.guid}`);
-        } catch (err) {
-          console.error("❌ Upsert failed for job:", err, currentJob);
-        }
+        parser.onclosetag = async (tagName) => {
+            if (tagName === "job" && currentJob && currentJob.guid) {
+                try {
+                    if (!currentJob.guid) return;
+                    await Job.updateOne(
+                        { guid: currentJob.guid },
+                        { $set: currentJob },
+                        { upsert: true },
+                    );
+                    console.log(`✅ Upserted job: ${currentJob.guid}`);
+                } catch (err) {
+                    console.error("❌ Upsert failed for job:", err, currentJob);
+                }
 
-        currentJob = null;
-      }
-      currentTag = "";
-    };
+                currentJob = null;
+            }
+            currentTag = "";
+        };
 
-    // Pipe chunks to parser
-    stream.on("data", (chunk) => {
-      parser.write(chunk.toString());
-    });
+        // Pipe chunks to parser
+        stream.on("data", (chunk) => {
+            parser.write(chunk.toString());
+        });
 
-    stream.on("end", () => {
-      parser.close();
-      console.log("✅ Stream ended");
-    });
-  } catch (error) {
-    console.error("❌ Error fetching jobs:", error.message);
-  }
+        stream.on("end", () => {
+            parser.close();
+            console.log("✅ Stream ended");
+        });
+    } catch (error) {
+        console.error("❌ Error fetching jobs:", error.message);
+    }
 };
 
 // Express endpoint to serve the jobs
 export const getJoobleJobs = tryCatch(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 15;
-  const start = (page - 1) * limit;
-  const end = page * limit;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const start = (page - 1) * limit;
+    const end = page * limit;
 
-  await fetchJobs();
-  const paginatedJobs = cachedJobs.slice(start, end);
-  const builder = new XMLBuilder();
-  const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
+    await fetchJobs();
+    const paginatedJobs = cachedJobs.slice(start, end);
+    const builder = new XMLBuilder();
+    const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
 
-  res.setHeader("Content-Type", "application/xml");
-  // res.status(200).send(xmlChunk);
-  res.status(200).json({ jobs: paginatedJobs });
+    res.setHeader("Content-Type", "application/xml");
+    // res.status(200).send(xmlChunk);
+    res.status(200).json({ jobs: paginatedJobs });
 });
 
 // const client = Redis.createClient({
