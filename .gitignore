@@ -9,9 +9,6 @@ build/
 logs/
 *.log
 
-# Environment variables
-.env
-
 # Dependency lock files
 package-lock.json
 yarn.lock
