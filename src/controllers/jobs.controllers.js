@@ -172,12 +172,9 @@ const fetchJobs = async () => {
 };
 
 // Schedule the cron job to run every hour
-cron.schedule('0 */12 * * *', () => {
-    fetchJobs();
-});
-
-// Initial fetch on server start
-fetchJobs();
+// cron.schedule('0 */12 * * *', () => {
+//     fetchJobs();
+// });
 
 // Express endpoint to serve the jobs
 export const getStepstoneJobs = tryCatch(async (req, res) => {
