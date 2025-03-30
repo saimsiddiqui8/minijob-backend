@@ -46,10 +46,15 @@ app.get("/test", (req, res) => {
 app.use("/api/v1/job", jobRouter)
 app.use("/api/v1/email-subscribe", emailSubscriptionRouter)
 
+setInterval(() => {
+    const used = process.memoryUsage();
+    console.log(`Memory usage: RSS ${Math.round(used.rss / 1024 / 1024)} MB`);
+}, 10000);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
+    console.log(err)
     res.status(500).send('Something broke!');
 });
 
