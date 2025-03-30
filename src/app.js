@@ -30,12 +30,11 @@ app.get("/", (req, res) => {
         timestamp: new Date().toISOString(),
         hostname: os.hostname(),
         env: process.env.NODE_ENV || "not set",
-        // version: require("./package.json").version,
-        // memory: {
-        //     total: `${(os.totalmem() / 1024 / 1024).toFixed(2)} MB`,
-        //     free: `${(os.freemem() / 1024 / 1024).toFixed(2)} MB`,
-        // },
-        // cpuModel: os.cpus()[0].model,
+        memory: {
+            total: `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+            free: `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+        },
+        cpuModel: os.cpus()[0].model,
     });
 });
 
