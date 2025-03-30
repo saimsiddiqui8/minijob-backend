@@ -157,93 +157,81 @@ export const getJobsByFilter = tryCatch(async (req, res) => {
 const feedUrl = 'https://de.jooble.org/affiliate_feed/KgYKLwsbCgIXNQIFKBgrMCg+GCsh.xml';
 
 let cachedJobs = [];
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const fetchJobs = async () => {
     try {
         console.log('Fetching jobs...');
 
-        // Fetch XML data as a stream
         const response = await axios.get(feedUrl, { responseType: 'stream' });
+        const parser = new SAXParser(true);
 
-        const parser = new SAXParser(true); // Enable strict mode
         let currentJob = null;
         let currentTag = '';
 
-        // Handle opening tags
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Pause the stream reference for control
+        const stream = response.data;
+
         parser.onopentag = (node) => {
             if (node.name === 'job') {
-                currentJob = {}; // Create new job object
+                currentJob = {};
             }
-            currentTag = node.name; // Track current tag
+            currentTag = node.name;
         };
 
-        // Handle text content inside tags
-        // parser.ontext = (text) => {
-        //     // console.log(text)
-        //     if (currentJob && currentTag) {
-        //         currentJob[currentTag] = (currentJob[currentTag] || '') + text.trim();
-        //     }
-        // };
-
         parser.oncdata = (cdata) => {
-            // console.log(cdata)
             if (currentJob && currentTag) {
                 currentJob[currentTag] = (currentJob[currentTag] || '') + cdata.trim();
             }
         };
 
         parser.onclosetag = async (tagName) => {
-            if (tagName === 'job' && currentJob) {
-                if (currentJob?.guid) {
+            if (tagName === 'job' && currentJob && currentJob.guid) {
+                stream.pause(); // Pause incoming data
 
-                    try {
-                        if(currentJob.guid) {
-                            await Job.updateOne(
-                                { guid: currentJob.guid },
-                                { $set: currentJob },
-                                { upsert: true }
-                            );
-                            console.log(`✅ Upserted batch of ${currentJob.guid} jobs`);
-                        }else {
-                            console.log("GUID not defined")
-                        }
-                    } catch (err) {
-                        console.error('❌ Bulk upsert failed:');
-                    }
-                } else {
-                    console.warn('⚠️ Skipped job with missing guid:');
+                try {
+                    await Job.updateOne(
+                        { guid: currentJob.guid },
+                        { $set: currentJob },
+                        { upsert: true }
+                    );
+                    console.log(`✅ Upserted job: ${currentJob.guid}`);
+                } catch (err) {
+                    console.error('❌ Upsert failed for job:', err.message);
                 }
 
                 currentJob = null;
+                await sleep(1000); // Optional throttle
+                stream.resume();  // Resume data stream
             }
             currentTag = '';
         };
 
-        // Process XML data stream
-        response.data.on('data', (chunk) => {
-            // console.log("Raw XML Data Chunk:", chunk.toString()); // Debug: Check the actual XML content
-            parser.write(chunk);
+        // Pipe chunks to parser
+        stream.on('data', (chunk) => {
+            parser.write(chunk.toString());
         });
 
-        // Handle end of stream
-        response.data.on('end', async () => {
-          parser.close();
-            console.log('Stream ended');
-            // ✅ Log jobs in JSON format
+        stream.on('end', () => {
+            parser.close();
+            console.log('✅ Stream ended');
         });
 
     } catch (error) {
-        console.error('Error fetching jobs:', error.message);
+        console.error('❌ Error fetching jobs:', error.message);
     }
 };
 
-// Schedule the cron job to run every hour
-cron.schedule('0 */12 * * *', () => {
-    fetchJobs();
-});
 
-// Initial fetch on server start
-fetchJobs();
+// Schedule the cron job to run every hour
+// cron.schedule('0 */12 * * *', () => {
+//     fetchJobs();
+// });
+
+// // Initial fetch on server start
+// fetchJobs();
 
 // Express endpoint to serve the jobs
 export const getStepstoneJobs = tryCatch(async (req, res) => {
@@ -253,13 +241,12 @@ export const getStepstoneJobs = tryCatch(async (req, res) => {
     const end = page * limit;
 
     await fetchJobs();
+    // const paginatedJobs = cachedJobs.slice(start, end);
+    // const builder = new XMLBuilder();
+    // const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
 
-    const paginatedJobs = cachedJobs.slice(start, end);
-    const builder = new XMLBuilder();
-    const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
-
-    res.setHeader('Content-Type', 'application/xml');
-    // res.status(200).send(xmlChunk);
-    res.status(200).json({ jobs: paginatedJobs });
+    // res.setHeader('Content-Type', 'application/xml');
+    // // res.status(200).send(xmlChunk);
+    // res.status(200).json({ jobs: paginatedJobs });
 
 });
