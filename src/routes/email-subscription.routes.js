@@ -5,5 +5,4 @@ const emailSubscriptionRouter = Router();
 
 emailSubscriptionRouter.route("/create").post(subscribeEmail);
 
-
 export default emailSubscriptionRouter;
