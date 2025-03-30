@@ -16,12 +16,13 @@ app.set('trust proxy', true);
 //routes import
 import jobRouter from './routes/jobs.routes.js'
 import emailSubscriptionRouter from "./routes/email-subscription.routes.js"
+import { fetchJobs } from "./controllers/jobs.controllers.js";
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
     const serverIp = Object.values(os.networkInterfaces())
         .flat()
         .find((iface) => iface.family === "IPv4" && !iface.internal)?.address || "Unknown IP";
-
+    await fetchJobs()
     res.send({
         message: "Server is running",
         serverIp,

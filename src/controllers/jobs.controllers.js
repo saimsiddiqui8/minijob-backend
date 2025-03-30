@@ -159,7 +159,7 @@ const feedUrl = 'https://de.jooble.org/affiliate_feed/KgYKLwsbCgIXNQIFKBgrMCg+GC
 let cachedJobs = [];
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const fetchJobs = async () => {
+export const fetchJobs = async () => {
     try {
         console.log('Fetching jobs...');
 
