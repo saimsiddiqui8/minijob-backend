@@ -9,7 +9,8 @@ app.use(cors({
 }))
 app.use(express.static("public"))
 app.use(express.json());
-app.set('trust proxy', true)
+app.use(morgan("combined"));
+app.set('trust proxy', true);
 
 //routes import
 import jobRouter from './routes/jobs.routes.js'
@@ -27,6 +28,13 @@ app.get("/", (req, res) => {
         uptime: `${process.uptime().toFixed(2)} seconds`,
         timestamp: new Date().toISOString(),
         hostname: os.hostname(),
+        env: process.env.NODE_ENV || "not set",
+        version: require("./package.json").version,
+        memory: {
+            total: `${(os.totalmem() / 1024 / 1024).toFixed(2)} MB`,
+            free: `${(os.freemem() / 1024 / 1024).toFixed(2)} MB`,
+        },
+        cpuModel: os.cpus()[0].model,
     });
 });
 
