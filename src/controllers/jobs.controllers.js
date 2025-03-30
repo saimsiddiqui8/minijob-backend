@@ -3,10 +3,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { notFound } from "../utils/notFound.js";
 import { tryCatch } from "../utils/tryCatch.js";
 import { validateRequiredFields } from "../utils/validations.js";
-import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { XMLBuilder } from 'fast-xml-parser';
 import Redis from 'redis';
 import cron from 'node-cron';
 import axios from "axios";
+import sax from "sax";
+const { SAXParser } = sax;
 
 const client = Redis.createClient({
     password: 'kS8s3hOQQmd3hzGtu6tZB9OWevCWBqbq',
@@ -43,8 +45,8 @@ export const getAllJobs = tryCatch(async (req, res) => {
 
 export const searchJob = tryCatch(async (req, res) => {
     const { search_string, location, limit } = req.query;
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb3VudHJ5IjoiREUiLCJwYXJ0bmVyX2lkIjoiNTgzIn0.uMINy5EYPYPlilavTBviTHwRydGP-NdTEwKUQ-Q2nVg';
-    const apiUrl = `https://de.jooble.org/real-time-search-api/job/search?search_string=${encodeURIComponent(search_string)}&location=${encodeURIComponent(location)}&limit=${limit}`;
+    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb3VudHJ5IjoiREUiLCJwYXJ0bmVyX2lkIjoiODc2In0.FZa6WJXceEqjanLY9-aFzkgiW9ITy4Dwh-vbsqnO4Fw';
+    // const apiUrl = https://de.jooble.org/real-time-search-api/job/search?search_string=${encodeURIComponent(search_string)}&location=${encodeURIComponent(location)}&limit=${limit};
 
     try {
         const fetch = await import('node-fetch').then(module => module.default);
@@ -60,9 +62,6 @@ export const searchJob = tryCatch(async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 })
-
-
-
 
 export const getJobById = tryCatch(async (req, res) => {
     const id = req.params.id;
@@ -154,27 +153,97 @@ export const getJobsByFilter = tryCatch(async (req, res) => {
     );
 });
 
-const feedUrl = 'https://feed.stepstone.de/partner/files/FD6E3D39-9567-4371-AF2F-4C2EA060ABE0/638D844C-A648-4FCF-94B2-BEB217B0C197';
+// const feedUrl = 'https://feed.stepstone.de/partner/files/FD6E3D39-9567-4371-AF2F-4C2EA060ABE0/638D844C-A648-4FCF-94B2-BEB217B0C197';
+const feedUrl = 'https://de.jooble.org/affiliate_feed/KgYKLwsbCgIXNQIFKBgrMCg+GCsh.xml';
 
 let cachedJobs = [];
 
-// Function to fetch and cache jobs from Stepstone feed
 const fetchJobs = async () => {
     try {
         console.log('Fetching jobs...');
-        const { data: xmlData } = await axios.get(feedUrl, { headers: { 'Content-Type': 'application/xml' } });
-        const parser = new XMLParser();
-        const result = parser.parse(xmlData);
-        cachedJobs = result.jobs.job;
+
+        // Fetch XML data as a stream
+        const response = await axios.get(feedUrl, { responseType: 'stream' });
+
+        const parser = new SAXParser(true); // Enable strict mode
+        let currentJob = null;
+        let currentTag = '';
+
+        // Handle opening tags
+        parser.onopentag = (node) => {
+            if (node.name === 'job') {
+                currentJob = {}; // Create new job object
+            }
+            currentTag = node.name; // Track current tag
+        };
+
+        // Handle text content inside tags
+        // parser.ontext = (text) => {
+        //     // console.log(text)
+        //     if (currentJob && currentTag) {
+        //         currentJob[currentTag] = (currentJob[currentTag] || '') + text.trim();
+        //     }
+        // };
+
+        parser.oncdata = (cdata) => {
+            // console.log(cdata)
+            if (currentJob && currentTag) {
+                currentJob[currentTag] = (currentJob[currentTag] || '') + cdata.trim();
+            }
+        };
+
+        parser.onclosetag = async (tagName) => {
+            if (tagName === 'job' && currentJob) {
+                if (currentJob?.guid) {
+
+                    try {
+                        if(currentJob.guid) {
+                            await Job.updateOne(
+                                { guid: currentJob.guid },
+                                { $set: currentJob },
+                                { upsert: true }
+                            );
+                            console.log(`✅ Upserted batch of ${currentJob.guid} jobs`);
+                        }else {
+                            console.log("GUID not defined")
+                        }
+                    } catch (err) {
+                        console.error('❌ Bulk upsert failed:');
+                    }
+                } else {
+                    console.warn('⚠️ Skipped job with missing guid:');
+                }
+
+                currentJob = null;
+            }
+            currentTag = '';
+        };
+
+        // Process XML data stream
+        response.data.on('data', (chunk) => {
+            // console.log("Raw XML Data Chunk:", chunk.toString()); // Debug: Check the actual XML content
+            parser.write(chunk);
+        });
+
+        // Handle end of stream
+        response.data.on('end', async () => {
+          parser.close();
+            console.log('Stream ended');
+            // ✅ Log jobs in JSON format
+        });
+
     } catch (error) {
         console.error('Error fetching jobs:', error.message);
     }
 };
 
 // Schedule the cron job to run every hour
-// cron.schedule('0 */12 * * *', () => {
-//     fetchJobs();
-// });
+cron.schedule('0 */12 * * *', () => {
+    fetchJobs();
+});
+
+// Initial fetch on server start
+fetchJobs();
 
 // Express endpoint to serve the jobs
 export const getStepstoneJobs = tryCatch(async (req, res) => {
@@ -183,13 +252,14 @@ export const getStepstoneJobs = tryCatch(async (req, res) => {
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    if (cachedJobs.length === 0) {
-        await fetchJobs();
-    }
+    await fetchJobs();
+
     const paginatedJobs = cachedJobs.slice(start, end);
     const builder = new XMLBuilder();
     const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
 
     res.setHeader('Content-Type', 'application/xml');
-    res.status(200).send(xmlChunk);
+    // res.status(200).send(xmlChunk);
+    res.status(200).json({ jobs: paginatedJobs });
+
 });

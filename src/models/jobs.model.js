@@ -1,98 +1,46 @@
 import mongoose, { Schema } from "mongoose";
 
 const JobSchema = new Schema({
-    id: {
+    guid: {
+        type: String,
+    },
+    referencenumber: {
+        type: String,
+    },
+    url: {
         type: String,
     },
     title: {
         type: String,
-        required: true
     },
-    description: {
+    country: {
         type: String,
-        required: true
     },
-    careerLevel: {
+    state: {
         type: String,
-        // enum: ["Intermediate", "Senior"],
-        required: true,
     },
-    category: {
+    city: {
         type: String,
-        required: true
     },
-    tags: {
-        type: String,
-        required: true
+    date_updated: {
+        type: Date,
     },
-    jobType: {
+    cpc: {
+        type: Number,
+        default: 0.0,
+    },
+    currency: {
         type: String,
-        // enum: ["Full-time", "Part-time", "Remote"],
-        default: "Full-time",
-        required: true
     },
     company: {
         type: String,
-        required: true
     },
-    language: {
+    jobtype: {
         type: String,
-        enum: ["English", "German"],
-        required: true
     },
-    wages: {
+    description: {
         type: String,
-        required: true
     },
-    skills: {
-        type: String,
-        required: true
-    },
-    languageLevel: {
-        type: String,
-        required: true
-    },
-    applyNow: {
-        type: String,
-        required: true
-    },
-    salaryFrequency: {
-        type: String,
-        // enum: ["Hour", "Week", "Month", "Year"],
-        default: "Month",
-        required: true
-    },
-    location: {
-        city: {
-            type: String,
-            required: true
-        },
-        country: {
-            type: String,
-            required: true
-        }
-    },
-    active: {
-        type: Boolean,
-        default: true
-    },
-    createdBy: {
-        type: String,
-        required: true
-    },
-
-}, {
-    timestamps: true
-}
-)
-JobSchema.pre('save', function(next) {
-    if (this.applyNow) {
-        const match = this.applyNow.match(/\/job\/(\d+)\?/);
-        if (match) {
-            this.id = match[1];
-        }
-    }
-    next();
 });
 
 export const Job = mongoose.model("Job", JobSchema);
