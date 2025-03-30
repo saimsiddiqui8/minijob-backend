@@ -45,7 +45,7 @@ app.get("/test", (req, res) => {
 app.use("/api/v1/job", jobRouter)
 app.use("/api/v1/email-subscribe", emailSubscriptionRouter)
 
-setInterval(() => {
+setTimeout(() => {
     const used = process.memoryUsage();
     console.log(`Memory usage: RSS ${Math.round(used.rss / 1024 / 1024)} MB`);
 }, 10000);
