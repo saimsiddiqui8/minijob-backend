@@ -1,77 +1,90 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { create } from 'xmlbuilder2';
 import { XMLParser } from 'fast-xml-parser';
 
 const baseUrl = 'https://minijobgermany.de';
-const pagesDir = './public';
-const sitemapPath = './public/sitemap.xml';
+
+// Simulate __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Sitemap output location
+const sitemapPath = path.resolve(__dirname, '../sitemap.xml');
+// HTML pages folder (your site root)
+const pagesDir = path.resolve(__dirname, '../');
+
+// Ignored HTML files and folders
+const IGNORED_FILES = ['404.html'];
+const IGNORED_DIRS = ['api', 'node_modules', 'scripts', '.git'];
 
 // Format: 2025-03-10T15:17:50+00:00
 function getCurrentISOTime() {
-    const now = new Date();
-    return now.toISOString().replace(/\.\d+Z$/, '+00:00');
+    return new Date().toISOString().replace(/\.\d+Z$/, '+00:00');
 }
 
+// Recursively find HTML files
 function getAllHtmlFiles(dirPath, fileList = [], base = '') {
     const files = fs.readdirSync(dirPath);
-    files.forEach(file => {
+    for (const file of files) {
         const filePath = path.join(dirPath, file);
         const stat = fs.statSync(filePath);
+
         if (stat.isDirectory()) {
-            getAllHtmlFiles(filePath, fileList, path.join(base, file));
-        } else if (file.endsWith('.html')) {
+            if (!IGNORED_DIRS.includes(file)) {
+                getAllHtmlFiles(filePath, fileList, path.join(base, file));
+            }
+        } else if (file.endsWith('.html') && !IGNORED_FILES.includes(file)) {
             fileList.push(path.join(base, file));
         }
-    });
+    }
     return fileList;
 }
 
+// Parse old sitemap to preserve <lastmod>
 function parseExistingSitemap(filePath) {
     if (!fs.existsSync(filePath)) return {};
-
     const xmlData = fs.readFileSync(filePath, 'utf8');
     const parser = new XMLParser({ ignoreAttributes: false });
     const json = parser.parse(xmlData);
 
-    const urlList = json.urlset?.url || [];
+    const urls = json.urlset?.url || [];
     const map = {};
 
-    (Array.isArray(urlList) ? urlList : [urlList]).forEach(entry => {
+    (Array.isArray(urls) ? urls : [urls]).forEach(entry => {
         const loc = entry.loc;
-        const lastmod = entry.lastmod;
-        const priority = entry.priority;
         if (loc) {
-            map[loc] = { lastmod, priority };
+            map[loc] = {
+                lastmod: entry.lastmod,
+                priority: entry.priority
+            };
         }
     });
 
     return map;
 }
 
-// Load previous entries (for preserving timestamps)
+// Load previous sitemap data
 const existingMap = parseExistingSitemap(sitemapPath);
-
-// Get all HTML file routes
 const htmlFiles = getAllHtmlFiles(pagesDir);
 
-// Build new sitemap
-const root = create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('urlset', {
-        xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9',
-        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-        'xsi:schemaLocation':
-            'http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd',
-    });
+// Create new sitemap XML
+const root = create({ version: '1.0', encoding: 'UTF-8' }).ele('urlset', {
+    xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9',
+    'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+    'xsi:schemaLocation':
+        'http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd',
+});
 
 htmlFiles.forEach(file => {
     const route = file.replace(/\\/g, '/').replace('index.html', '').replace(/\.html$/, '');
-    const url = `${baseUrl}/${route}`.replace(/\/+$/, '/');
+    const finalPath = route.startsWith('in-') ? route.replace(/^in-/, 'minijob-') : route;
+    const url = `${baseUrl}/${finalPath}`.replace(/\/+$/, '/');
 
     const isHomepage = url === `${baseUrl}/`;
-    const existingEntry = existingMap[url];
-
-    const lastmod = existingEntry?.lastmod || getCurrentISOTime();
+    const existing = existingMap[url];
+    const lastmod = existing?.lastmod || getCurrentISOTime();
     const priority = isHomepage ? '1.00' : '0.80';
 
     const urlNode = root.ele('url');
@@ -80,7 +93,7 @@ htmlFiles.forEach(file => {
     urlNode.ele('priority').txt(priority);
 });
 
+// Write final sitemap
 const xml = root.end({ prettyPrint: true });
 fs.writeFileSync(sitemapPath, xml);
-
-console.log('📌 Sitemap generated successfully!');
+console.log('✅ Sitemap generated successfully at:', sitemapPath);
