@@ -16,7 +16,7 @@ const sitemapPath = path.resolve(__dirname, '../sitemap.xml');
 const pagesDir = path.resolve(__dirname, '../');
 
 // Ignored HTML files and folders
-const IGNORED_FILES = ['404.html'];
+const IGNORED_FILES = ['404.html', 'salary-tax-calculator.html'];
 const IGNORED_DIRS = ['api', 'node_modules', 'scripts', '.git'];
 
 // Format: 2025-03-10T15:17:50+00:00

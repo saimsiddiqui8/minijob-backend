@@ -21,7 +21,7 @@ export const getAllJobs = tryCatch(async (req, res) => {
 export const getJobsByType = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const { jobtype } = req.body;
+    const jobtype = req.query.jobtype;
     if (
         ![
             "Part-time",
