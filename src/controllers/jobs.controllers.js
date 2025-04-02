@@ -22,6 +22,7 @@ export const getJobsByType = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const jobtype = req.query.jobtype;
+    const city = req.query.city;
     if (
         ![
             "Part-time",
@@ -40,11 +41,15 @@ export const getJobsByType = async (req, res) => {
             .status(404)
             .json(new ApiResponse(404, "Invalid Job type"));
 
-
     const skip = (page - 1) * limit;
 
+    const query = { jobtype };
+    if (city) {
+        query.city = { $regex: new RegExp(city, "i") }; // case-insensitive match
+    }
+
     const [jobs, total] = await Promise.all([
-        Job.find({ jobtype })
+        Job.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
@@ -52,10 +57,29 @@ export const getJobsByType = async (req, res) => {
         Job.countDocuments({ jobtype }),
     ]);
 
+    const data = await Job.aggregate([
+        {
+            $group: {
+                _id: { $toLower: "$city" }, // Group by city (case-insensitive)
+                count: { $sum: 1 },
+            },
+        },
+        {
+            $match: {
+                count: { $gte: 50 }
+            }
+        },
+        {
+            $sort: { count: -1 }, // Sort by count descending
+        },
+    ]);
+    console.log(data)
+
     return res.status(200).json(
         new ApiResponse(200, "", {
             statusCode: 200,
             data: jobs,
+            info: data,
             total,
             page,
             totalPages: Math.ceil(total / limit),
