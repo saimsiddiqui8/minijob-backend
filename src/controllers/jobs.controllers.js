@@ -54,32 +54,31 @@ export const getJobsByType = async (req, res) => {
             .skip(skip)
             .limit(limit)
             .lean(), // ⚡ lean makes it faster
-        Job.countDocuments({ jobtype }),
+        Job.countDocuments(query),
     ]);
 
-    const data = await Job.aggregate([
-        {
-            $group: {
-                _id: { $toLower: "$city" }, // Group by city (case-insensitive)
-                count: { $sum: 1 },
-            },
-        },
-        {
-            $match: {
-                count: { $gte: 50 }
-            }
-        },
-        {
-            $sort: { count: -1 }, // Sort by count descending
-        },
-    ]);
-    console.log(data)
+    // const data = await Job.aggregate([
+    //     {
+    //         $group: {
+    //             _id: { $toLower: "$city" }, // Group by city (case-insensitive)
+    //             count: { $sum: 1 },
+    //         },
+    //     },
+    //     {
+    //         $match: {
+    //             count: { $gte: 50 }
+    //         }
+    //     },
+    //     {
+    //         $sort: { count: -1 }, // Sort by count descending
+    //     },
+    // ]);
+    // console.log(data)
 
     return res.status(200).json(
         new ApiResponse(200, "", {
             statusCode: 200,
             data: jobs,
-            info: data,
             total,
             page,
             totalPages: Math.ceil(total / limit),

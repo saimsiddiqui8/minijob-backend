@@ -6,7 +6,7 @@ import morgan from "morgan";
 const app = express();
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: ["https://minijobgermany.de/", "http://127.0.0.1:8081", "http://192.168.0.105:8081" ],
     credentials: true,
   }),
 );
