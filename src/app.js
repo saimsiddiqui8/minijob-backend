@@ -4,16 +4,21 @@ import os from "os";
 import morgan from "morgan";
 
 const app = express();
-app.use(
-  cors({
-    origin: ["https://minijobgermany.de", "https://www.minijobgermany.de/", "http://127.0.0.1:8081", "http://192.168.0.105:8081"],
-    credentials: true,
-  }),
-);
 app.use(express.static("public"));
 app.use(express.json());
 app.use(morgan("combined"));
 app.set("trust proxy", true);
+app.use(
+  cors({
+    origin: [
+      "https://minijobgermany.de",
+      "https://www.minijobgermany.de",
+      "http://127.0.0.1:8081",
+      "http://192.168.0.105:8081"
+    ],
+    credentials: true,
+  }),
+);
 
 //routes import
 import jobRouter from "./routes/jobs.routes.js";
