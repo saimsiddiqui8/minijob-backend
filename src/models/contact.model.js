@@ -1,5 +1,6 @@
 // models/Contact.js
-const mongoose = require('mongoose');
+
+import mongoose from "mongoose";
 
 const ContactSchema = new mongoose.Schema({
     name: { type: String, required: true },

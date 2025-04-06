@@ -24,6 +24,7 @@ app.use(
 import jobRouter from "./routes/jobs.routes.js";
 import emailSubscriptionRouter from "./routes/email-subscription.routes.js";
 import { fetchJobs } from "./controllers/jobs.controllers.js";
+import contactRouter from "./routes/contact.routes.js";
 
 app.get("/", async (req, res) => {
   const serverIp =
@@ -53,6 +54,7 @@ app.get("/test", (req, res) => {
 });
 
 app.use("/api/v1/job", jobRouter);
+app.use("/api/v1/contact", contactRouter);
 app.use("/api/v1/email-subscribe", emailSubscriptionRouter);
 
 // Error handling middleware
