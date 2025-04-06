@@ -37,7 +37,7 @@ export const contactForm = tryCatch(async (req, res) => {
   // Compose email
   const mailOptions = {
     from: `"MinijobGermany" <${process.env.EMAIL_USER}>`,
-    to: [process.env.EMAIL_USER, "saim.ali.siddiqui2004@gmail.com"], // send to yourself
+    to: process.env.EMAIL_USER, // send to yourself
     subject: `📨 Contact form from ${name}`,
     html: `
       <h2>New Contact Submission</h2>
