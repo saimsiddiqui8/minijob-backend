@@ -171,7 +171,7 @@ export const getJobsByFilter = tryCatch(async (req, res) => {
     }
 
     // Fetch jobs based on the constructed query
-    const jobs = await Job.find(query).sort({ createdAt: -1 });
+    const jobs = await Job.find(query).sort({ date_updated: -1 });
 
     if (!jobs || jobs.length === 0) {
         return res
