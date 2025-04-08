@@ -50,7 +50,7 @@ export const getJobsByType = async (req, res) => {
 
     const [jobs, total] = await Promise.all([
         Job.find(query)
-            .sort({ createdAt: -1 })
+            .sort({ date_updated: -1 })
             .skip(skip)
             .limit(limit)
             .lean(), // ⚡ lean makes it faster
