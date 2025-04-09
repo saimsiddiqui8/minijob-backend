@@ -41,6 +41,14 @@ const JobSchema = new Schema({
   description: {
     type: String,
   },
+  postedOnLinkedIn: {
+    type: Boolean,
+    default: false
+  },
+  postedOnFb: {
+    type: Boolean,
+    default: false
+  },
 });
 
 export const Job = mongoose.model("Job", JobSchema);

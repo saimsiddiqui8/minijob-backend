@@ -245,7 +245,7 @@ export const fetchJobs = async () => {
         console.error("❌ Error fetching jobs:", error.message);
     }
 };
-
+fetchJobs();
 // Express endpoint to serve the jobs
 export const getJoobleJobs = tryCatch(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
