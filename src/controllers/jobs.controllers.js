@@ -263,6 +263,46 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     res.status(200).json({ jobs: paginatedJobs });
 });
 
+
+export const suggestions = tryCatch(async (req, res) => {
+    const q = req.query.q?.toString().trim() || "";
+    if (!q) return res.json([]);
+
+    const suggestions = await Job.aggregate([
+        {
+            $search: {
+                index: "autocomplete",
+                autocomplete: {
+                    query: q,
+                    path: ["city", "title"],
+                },
+            },
+        },
+        {
+            $limit: 10,
+        },
+        {
+            $project: {
+                _id: 0,
+                city: 1,
+                title: 1,
+            },
+        },
+    ]);
+
+    const unique = new Set();
+    const response = suggestions.flatMap((s) => {
+        const c = s.city?.trim();
+        const t = s.title?.trim();
+        return [
+            c && !unique.has(c) ? unique.add(c) && { type: "city", value: c } : null,
+            t && !unique.has(t) ? unique.add(t) && { type: "title", value: t } : null,
+        ];
+    }).filter(Boolean);
+
+    res.json(response);
+})
+
 // const client = Redis.createClient({
 //     password: 'kS8s3hOQQmd3hzGtu6tZB9OWevCWBqbq',
 //     socket: {
