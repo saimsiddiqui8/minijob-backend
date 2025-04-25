@@ -267,28 +267,64 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
 export const suggestions = tryCatch(async (req, res) => {
     const q = req.query.q?.toString().trim() || "";
     if (!q) return res.json([]);
-    
+
     const suggestions = await Job.find({
-      $or: [
-        { city: { $regex: q, $options: "i" } },
-        { title: { $regex: q, $options: "i" } },
-      ],
+        $or: [
+            { city: { $regex: q, $options: "i" } },
+            { title: { $regex: q, $options: "i" } },
+        ],
     })
-      .limit(10)
-      .select("city title -_id");
-    
+        .limit(10)
+        .select("city title -_id guid");
+
     const unique = new Set();
     const response = suggestions.flatMap((s) => {
-      const c = s.city?.trim();
-      const t = s.title?.trim();
-      return [
-        c && !unique.has(c) ? unique.add(c) && { type: "city", value: c } : null,
-        t && !unique.has(t) ? unique.add(t) && { type: "title", value: t } : null,
-      ];
+        const c = s.city?.trim();
+        const t = s.title?.trim();
+        return [
+            c && !unique.has(c) ? unique.add(c) && { type: "city", value: c } : null,
+            t && !unique.has(t) ? unique.add(t) && { type: "title", value: t } : null,
+        ];
     }).filter(Boolean);
-    
-    res.json(response);    
+
+    res.json(response);
 });
+
+export const searchJobs = tryCatch(async (req, res) => {
+    const { q, page = 1, limit = 12 } = req.query;
+
+    if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
+
+    const regex = new RegExp(q, "i"); // case-insensitive search
+
+    try {
+        const total = await Job.countDocuments({
+            $or: [
+                { title: { $regex: regex } },
+                { description: { $regex: regex } },
+            ],
+        });
+
+        const jobs = await Job.find({
+            $or: [
+                { title: { $regex: regex } },
+                { description: { $regex: regex } },
+            ],
+        })
+            .sort({ date_updated: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        res.json({
+            total,
+            totalPages: Math.ceil(total / limit),
+            data: jobs,
+        });
+    } catch (err) {
+        console.error("Search error:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+})
 
 // const client = Redis.createClient({
 //     password: 'kS8s3hOQQmd3hzGtu6tZB9OWevCWBqbq',
