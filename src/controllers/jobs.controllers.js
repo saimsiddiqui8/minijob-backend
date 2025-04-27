@@ -296,7 +296,7 @@ export const searchJobs = tryCatch(async (req, res) => {
     if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
     const regex = new RegExp(q, "i"); // case-insensitive search
-    const cityRegex = city ? new RegExp(city, "i") : null; // city filter if given
+    const cityRegex = city ? new RegExp(city, "i") : null;
 
     try {
         const query = {
