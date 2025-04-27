@@ -21,29 +21,35 @@ export const getAllJobs = tryCatch(async (req, res) => {
 export const getJobsByType = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const jobtype = req.query.jobtype;
+    const jobtypeQuery = req.query.jobtype;
     const city = req.query.city;
-    if (
-        ![
-            "Part-time",
-            "Full-time",
-            "Part-time, Full-time",
-            "Full-time, Part-time",
-            "Internship",
-            "Temporary, Full-time",
-            "Temporary",
-            "Temporary, Part-time",
-            "Internship, Part-time",
-            "Full-time, Internship",
-        ].includes(jobtype)
-    )
-        return res
-            .status(404)
-            .json(new ApiResponse(404, "Invalid Job type"));
+
+    if (!jobtypeQuery) {
+        return res.status(400).json(new ApiResponse(400, "Job type is required"));
+    }
+    const jobtypes = jobtypeQuery.split(",").map(type => type.trim());
+
+    const allowedTypes = [
+        "Part-time",
+        "Full-time",
+        "Internship",
+        "Temporary",
+        "Contract",
+        "Remote"
+    ];
+
+    // Validate
+    const invalidTypes = jobtypes.filter(type => !allowedTypes.includes(type));
+    if (invalidTypes.length > 0) {
+        return res.status(404).json(new ApiResponse(404, "Invalid Job type(s): " + invalidTypes.join(", ")));
+    }
 
     const skip = (page - 1) * limit;
 
-    const query = { jobtype };
+    const query = {
+        jobtype: { $in: jobtypes }
+    };
+
     if (city) {
         query.city = { $regex: new RegExp(city, "i") }; // case-insensitive match
     }
@@ -56,24 +62,6 @@ export const getJobsByType = async (req, res) => {
             .lean(), // ⚡ lean makes it faster
         Job.countDocuments(query),
     ]);
-
-    // const data = await Job.aggregate([
-    //     {
-    //         $group: {
-    //             _id: { $toLower: "$city" }, // Group by city (case-insensitive)
-    //             count: { $sum: 1 },
-    //         },
-    //     },
-    //     {
-    //         $match: {
-    //             count: { $gte: 50 }
-    //         }
-    //     },
-    //     {
-    //         $sort: { count: -1 }, // Sort by count descending
-    //     },
-    // ]);
-    // console.log(data)
 
     return res.status(200).json(
         new ApiResponse(200, "", {
