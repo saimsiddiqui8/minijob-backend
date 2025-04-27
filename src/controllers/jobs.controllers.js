@@ -249,7 +249,7 @@ export const fetchJobs = async () => {
 // Express endpoint to serve the jobs
 export const getJoobleJobs = tryCatch(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 15;
+    const limit = parseInt(req.query.limit) || 20;
     const start = (page - 1) * limit;
     const end = page * limit;
 
@@ -291,26 +291,33 @@ export const suggestions = tryCatch(async (req, res) => {
 });
 
 export const searchJobs = tryCatch(async (req, res) => {
-    const { q, page = 1, limit = 12 } = req.query;
+    const { q, page = 1, limit = 20, city } = req.query;
 
     if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
     const regex = new RegExp(q, "i"); // case-insensitive search
+    const cityRegex = city ? new RegExp(city, "i") : null; // city filter if given
 
     try {
-        const total = await Job.countDocuments({
-            $or: [
-                { title: { $regex: regex } },
-                { description: { $regex: regex } },
-            ],
-        });
+        const query = {
+            $and: [
+                {
+                    $or: [
+                        { title: { $regex: regex } },
+                        { description: { $regex: regex } }
+                    ]
+                },
+            ]
+        };
 
-        const jobs = await Job.find({
-            $or: [
-                { title: { $regex: regex } },
-                { description: { $regex: regex } },
-            ],
-        })
+        // ✅ If city is provided, add city match
+        if (cityRegex) {
+            query.$and.push({ city: { $regex: cityRegex } });
+        }
+
+        const total = await Job.countDocuments(query);
+
+        const jobs = await Job.find(query)
             .sort({ date_updated: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit));
@@ -324,7 +331,7 @@ export const searchJobs = tryCatch(async (req, res) => {
         console.error("Search error:", err);
         res.status(500).json({ error: "Internal server error" });
     }
-})
+});
 
 // const client = Redis.createClient({
 //     password: 'kS8s3hOQQmd3hzGtu6tZB9OWevCWBqbq',

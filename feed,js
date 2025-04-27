@@ -1,0 +1,7 @@
+import { fetchJobs } from "./src/controllers/jobs.controllers";
+
+(async () => {
+  await fetchJobs();
+  console.log('Done syncing jobs');
+  process.exit(0); // exit after execution
+})();
