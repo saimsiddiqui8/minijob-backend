@@ -18,7 +18,7 @@ export const getAllJobs = tryCatch(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, "", jobs));
 });
 
-export const getJobsByType = async (req, res) => {
+export const getJobsByType = tryCatch(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const jobtypeQuery = req.query.jobtype;
@@ -73,7 +73,48 @@ export const getJobsByType = async (req, res) => {
             success: true,
         }),
     );
-};
+})
+
+export const getJobsCountByType = tryCatch(async (req, res) => {
+    try {
+        const city = req.query.city || "";
+
+        const matchStage = city ? { city: { $regex: new RegExp(city, 'i') } } : {};
+
+        const counts = await Job.aggregate([
+            {
+                $match: matchStage
+            },
+            {
+                $project: {
+                    jobtype: { $split: ["$jobtype", ", "] } // Split string by ", "
+                }
+            },
+            {
+                $unwind: "$jobtype"
+            },
+            {
+                $group: {
+                    _id: "$jobtype",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Convert array to object
+        const result = {};
+        counts.forEach(item => {
+            if (item._id) {
+                result[item._id] = item.count;
+            }
+        });
+
+        res.json({ counts: result });
+    } catch (error) {
+        console.error("Error fetching job type counts:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
 
 export const getJobById = tryCatch(async (req, res) => {
     const id = req.params.id;
