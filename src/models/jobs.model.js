@@ -37,6 +37,7 @@ const JobSchema = new Schema({
   },
   jobtype: {
     type: String,
+    default: "Part-time"
   },
   description: {
     type: String,
