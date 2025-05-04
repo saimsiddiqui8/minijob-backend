@@ -333,7 +333,6 @@ export const searchJobs = tryCatch(async (req, res) => {
                 {
                     $or: [
                         { title: { $regex: regex } },
-                        { description: { $regex: regex } }
                     ]
                 },
             ]
