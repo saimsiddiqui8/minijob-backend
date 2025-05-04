@@ -301,29 +301,37 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
 
 
 export const suggestions = tryCatch(async (req, res) => {
+     const { city, } = req.query;
     const q = req.query.q?.toString().trim() || "";
-    if (!q) return res.json([]);
 
-    const suggestions = await Job.find({
-        $or: [
-            { city: { $regex: q, $options: "i" } },
-            { title: { $regex: q, $options: "i" } },
-        ],
-    })
-        .limit(10)
-        .select("city title -_id guid");
+    if (!q || q.trim().length < 2) {
+        return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Query must be at least 2 characters long",
+        });
+    }
+    const regex = new RegExp(q, "i");
 
-    const unique = new Set();
-    const response = suggestions.flatMap((s) => {
-        const c = s.city?.trim();
-        const t = s.title?.trim();
-        return [
-            c && !unique.has(c) ? unique.add(c) && { type: "city", value: c } : null,
-            t && !unique.has(t) ? unique.add(t) && { type: "title", value: t } : null,
-        ];
-    }).filter(Boolean);
+    const query = {
+        title: { $regex: regex },
+    };
 
-    res.json(response);
+    if (city && city.trim().length > 0) {
+        query.city = city;
+    }
+
+    const suggestions = await Job.find(query)
+        .select("title")
+        .lean();
+
+    return res.status(200).json(
+        new ApiResponse(200, "Job deleted successfully", {
+            statusCode: 200,
+            success: true,
+            data: suggestions,
+        }),
+    );
 });
 
 export const searchJobs = tryCatch(async (req, res) => {
