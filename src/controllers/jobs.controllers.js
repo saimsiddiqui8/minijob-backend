@@ -139,7 +139,7 @@ export const getJobById = tryCatch(async (req, res) => {
 });
 
 export const getJobTitleSuggestions = async (req, res) => {
-    const { q } = req.query; // query string: /jobs/suggest?q=finanz
+    const { city, q } = req.query; // query string: /jobs/suggest?q=finanz
 
     if (!q || q.trim().length < 2) {
         return res.status(400).json({
@@ -148,12 +148,19 @@ export const getJobTitleSuggestions = async (req, res) => {
             message: "Query must be at least 2 characters long",
         });
     }
+    const regex = new RegExp(q, "i");
 
-    const suggestions = await Job.find({
-        title: { $regex: q, $options: "i" }, // case-insensitive match
-    })
-        .limit(10) // limit for dropdown
-        .select("title _id guid")
+    const query = {
+        title: { $regex: regex },
+    };
+
+    if (city && city.trim().length > 0) {
+        query.city = city;
+    }
+
+    const suggestions = await Job.find(query)
+        .limit(10)
+        .select("title")
         .lean();
 
     return res.status(200).json(
