@@ -359,26 +359,23 @@ export const citySuggestions = tryCatch(async (req, res) => {
 export const searchJobs = tryCatch(async (req, res) => {
     const { q, page = 1, limit = 20, city } = req.query;
 
-    if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
+    if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
-    const regex = new RegExp(q, "i"); // case-insensitive search
-    const cityRegex = city ? new RegExp(city, "i") : null;
+    const filters = [];
+
+    if (q) {
+        const regex = new RegExp(q, "i");
+        filters.push({ title: { $regex: regex } });
+    }
+
+    if (city) {
+        const cityRegex = new RegExp(city, "i");
+        filters.push({ city: { $regex: cityRegex } });
+    }
+
+    const query = filters.length > 0 ? { $and: filters } : {};
 
     try {
-        const query = {
-            $and: [
-                {
-                    $or: [
-                        { title: { $regex: regex } },
-                    ]
-                },
-            ]
-        };
-
-        // ✅ If city is provided, add city match
-        if (cityRegex) {
-            query.$and.push({ city: { $regex: cityRegex } });
-        }
 
         const total = await Job.countDocuments(query);
 
