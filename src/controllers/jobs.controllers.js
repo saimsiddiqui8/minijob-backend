@@ -349,8 +349,10 @@ export const citySuggestions = tryCatch(async (req, res) => {
         city: { $regex: q, $options: "i" }
     });
 
+    const limitedCities = cities.slice(0, 10);
+
     return res.status(200).json(
-        new ApiResponse(200, "Cities retrieved successfully", cities),
+        new ApiResponse(200, "Cities retrieved successfully", limitedCities),
     );
 });
 
