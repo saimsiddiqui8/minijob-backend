@@ -314,7 +314,7 @@ export const suggestions = tryCatch(async (req, res) => {
     const regex = new RegExp(q, "i");
 
     const query = {
-        title: { $regex: regex },
+        category: { $regex: regex },
     };
 
     if (city && city.trim().length > 0) {
