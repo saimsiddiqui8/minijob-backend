@@ -350,11 +350,7 @@ export const citySuggestions = tryCatch(async (req, res) => {
     }).limit(10).select("city");
 
     return res.status(200).json(
-        new ApiResponse(200, "Cities retrieved successfully", {
-            statusCode: 200,
-            success: true,
-            data: filtered,
-        }),
+        new ApiResponse(200, "Cities retrieved successfully", filtered),
     );
 });
 
