@@ -301,7 +301,7 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
 // fetchJobs();
 
 export const suggestions = tryCatch(async (req, res) => {
-     const { city, } = req.query;
+    const { city, } = req.query;
     const q = req.query.q?.toString().trim() || "";
 
     if (!q || q.trim().length < 2) {
@@ -326,7 +326,31 @@ export const suggestions = tryCatch(async (req, res) => {
         .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, "Job deleted successfully", {
+        new ApiResponse(200, "Suggestion Retrieved successfully", {
+            statusCode: 200,
+            success: true,
+            data: suggestions,
+        }),
+    );
+});
+
+export const citySuggestions = tryCatch(async (req, res) => {
+    const q = req.query.q?.toString().trim() || "";
+
+    if (!q || q.trim().length < 2) {
+        return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Query must be at least 2 characters long",
+        });
+    }
+
+    const filtered = await Job.find({
+        name: { $regex: q, $options: "i" }
+    }).limit(10);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Cities retrieved successfully", {
             statusCode: 200,
             success: true,
             data: suggestions,
