@@ -6,8 +6,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node -r dotenv/config --experimental-json-modules src/index.js",
-    "feed": "node feed.js",
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+    "home": "node --max-old-space-size=8192 -r dotenv/config --experimental-json-modules src/index.js",
+    "feed": "node --max-old-space-size=12288 -r dotenv/config --experimental-json-modules src/index.js",
     "prettier": "prettier . --write",
     "test": "echo \"No test specified\" && exit 0"
   },

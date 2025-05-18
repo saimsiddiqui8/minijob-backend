@@ -22,6 +22,9 @@ const JobSchema = new Schema({
   city: {
     type: String,
   },
+  category: {
+    type: String,
+  },
   date_updated: {
     type: Date,
   },
@@ -37,7 +40,7 @@ const JobSchema = new Schema({
   },
   jobtype: {
     type: String,
-    default: "Part-time"
+    default: "Full-time"
   },
   description: {
     type: String,

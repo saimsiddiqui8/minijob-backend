@@ -231,7 +231,6 @@ export const fetchJobs = async () => {
         let currentJob = null;
         let currentTag = "";
 
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
         // Pause the stream reference for control
         const stream = response.data;
@@ -299,6 +298,7 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     res.status(200).json({ jobs: paginatedJobs });
 });
 
+fetchJobs();
 
 export const suggestions = tryCatch(async (req, res) => {
      const { city, } = req.query;
