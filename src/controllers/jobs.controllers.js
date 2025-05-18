@@ -345,12 +345,12 @@ export const citySuggestions = tryCatch(async (req, res) => {
         });
     }
 
-    const filtered = await Job.find({
+    const cities = await Job.distinct("city", {
         city: { $regex: q, $options: "i" }
-    }).limit(10).select("city");
+    });
 
     return res.status(200).json(
-        new ApiResponse(200, "Cities retrieved successfully", filtered),
+        new ApiResponse(200, "Cities retrieved successfully", cities),
     );
 });
 
