@@ -346,7 +346,7 @@ export const citySuggestions = tryCatch(async (req, res) => {
     }
 
     const filtered = await Job.find({
-        name: { $regex: q, $options: "i" }
+        city: { $regex: q, $options: "i" }
     }).limit(10);
 
     return res.status(200).json(
