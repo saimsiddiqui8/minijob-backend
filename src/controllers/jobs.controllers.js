@@ -231,7 +231,6 @@ export const fetchJobs = async () => {
         let currentJob = null;
         let currentTag = "";
 
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
         // Pause the stream reference for control
         const stream = response.data;
@@ -299,9 +298,10 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     res.status(200).json({ jobs: paginatedJobs });
 });
 
+// fetchJobs();
 
 export const suggestions = tryCatch(async (req, res) => {
-     const { city, } = req.query;
+    const { city, } = req.query;
     const q = req.query.q?.toString().trim() || "";
 
     if (!q || q.trim().length < 2) {
@@ -314,7 +314,7 @@ export const suggestions = tryCatch(async (req, res) => {
     const regex = new RegExp(q, "i");
 
     const query = {
-        title: { $regex: regex },
+        category: { $regex: regex },
     };
 
     if (city && city.trim().length > 0) {
@@ -326,7 +326,7 @@ export const suggestions = tryCatch(async (req, res) => {
         .lean();
 
     return res.status(200).json(
-        new ApiResponse(200, "Job deleted successfully", {
+        new ApiResponse(200, "Suggestion Retrieved successfully", {
             statusCode: 200,
             success: true,
             data: suggestions,
@@ -334,29 +334,48 @@ export const suggestions = tryCatch(async (req, res) => {
     );
 });
 
+export const citySuggestions = tryCatch(async (req, res) => {
+    const q = req.query.q?.toString().trim() || "";
+
+    if (!q || q.trim().length < 2) {
+        return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Query must be at least 2 characters long",
+        });
+    }
+
+    const cities = await Job.distinct("city", {
+        city: { $regex: q, $options: "i" }
+    });
+
+    const limitedCities = cities.slice(0, 10);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Cities retrieved successfully", limitedCities),
+    );
+});
+
 export const searchJobs = tryCatch(async (req, res) => {
     const { q, page = 1, limit = 20, city } = req.query;
 
-    if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
+    if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
-    const regex = new RegExp(q, "i"); // case-insensitive search
-    const cityRegex = city ? new RegExp(city, "i") : null;
+    const filters = [];
+
+    if (q) {
+        const regex = new RegExp(q, "i");
+        filters.push({ title: { $regex: regex } });
+    }
+
+    if (city) {
+        const cityRegex = new RegExp(city, "i");
+        filters.push({ city: { $regex: cityRegex } });
+    }
+
+    const query = filters.length > 0 ? { $and: filters } : {};
 
     try {
-        const query = {
-            $and: [
-                {
-                    $or: [
-                        { title: { $regex: regex } },
-                    ]
-                },
-            ]
-        };
-
-        // ✅ If city is provided, add city match
-        if (cityRegex) {
-            query.$and.push({ city: { $regex: cityRegex } });
-        }
 
         const total = await Job.countDocuments(query);
 
