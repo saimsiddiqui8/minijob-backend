@@ -298,7 +298,6 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     res.status(200).json({ jobs: paginatedJobs });
 });
 
-// fetchJobs();
 
 export const suggestions = tryCatch(async (req, res) => {
     const { city, } = req.query;
