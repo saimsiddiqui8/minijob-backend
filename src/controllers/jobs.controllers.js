@@ -377,8 +377,13 @@ export const searchJobs = tryCatch(async (req, res) => {
 
     if (city) {
         const cityRegex = new RegExp(city, "i");
-        filters.push({ city: { $regex: cityRegex } });
-    }
+        filters.push({
+            $or: [
+                { city: { $regex: cityRegex } },
+                { state: { $regex: cityRegex } }
+            ]
+        });
+    }    
 
     if (jobtype) {
         const typesArray = Array.isArray(jobtype)
