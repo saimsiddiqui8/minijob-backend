@@ -288,7 +288,6 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    await fetchJobs();
     const paginatedJobs = cachedJobs.slice(start, end);
     const builder = new XMLBuilder();
     const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
