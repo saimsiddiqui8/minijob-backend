@@ -357,10 +357,19 @@ export const citySuggestions = tryCatch(async (req, res) => {
 });
 
 export const searchJobs = tryCatch(async (req, res) => {
-    const { q, page = 1, limit = 20, city } = req.query;
+    const allowedTypes = [
+        "Part-time",
+        "Full-time",
+        "Internship",
+        "Temporary",
+        "Contract",
+        "Remote"
+    ];
+    const { q, page = 1, limit = 20, city, jobtype } = req.query;
 
-    if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
-
+    if (!q && !city && !jobtype) {
+        return res.status(400).json({ error: "At least one of 'q', 'city', or 'jobtype' is required" });
+    }
     const filters = [];
 
     if (q) {
@@ -371,6 +380,23 @@ export const searchJobs = tryCatch(async (req, res) => {
     if (city) {
         const cityRegex = new RegExp(city, "i");
         filters.push({ city: { $regex: cityRegex } });
+    }
+
+    if (jobtype) {
+        const typesArray = Array.isArray(jobtype)
+            ? jobtype
+            : typeof jobtype === "string"
+                ? jobtype.split(",").map(t => t.trim())
+                : [];
+
+        const invalidTypes = typesArray.filter(type => !allowedTypes.includes(type));
+        if (invalidTypes.length > 0) {
+            return res.status(404).json(new ApiResponse(404, "Invalid Job type(s): " + invalidTypes.join(", ")));
+        }
+
+        if (typesArray.length > 0) {
+            filters.push({ type: { $in: typesArray } });
+        }
     }
 
     const query = filters.length > 0 ? { $and: filters } : {};
