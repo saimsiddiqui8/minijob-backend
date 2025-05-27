@@ -394,7 +394,7 @@ export const searchJobs = tryCatch(async (req, res) => {
         }
 
         if (typesArray.length > 0) {
-            filters.push({ type: { $in: typesArray } });
+            filters.push({ jobtype: { $in: typesArray } });
         }
     }
 
