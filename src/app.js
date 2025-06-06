@@ -12,6 +12,8 @@ app.use(
   cors({
     origin: [
       "https://minijobgermany.de",
+      "http://minijobgermany.de",
+      "https://minijobgermany.de/",
       "https://www.minijobgermany.de",
       "http://127.0.0.1:8081",
       "http://127.0.0.1:8080",
