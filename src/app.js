@@ -29,8 +29,8 @@ import emailSubscriptionRouter from "./routes/email-subscription.routes.js";
 import { fetchJobs } from "./controllers/jobs.controllers.js";
 import contactRouter from "./routes/contact.routes.js";
 
-app.listen(process.env.PORT, () => {
-  console.log('Server is running', process.env.PORT);
+app.listen(8000, () => {
+  console.log('Server is running', 8000);
 });
 
 app.get("/", async (req, res) => {
