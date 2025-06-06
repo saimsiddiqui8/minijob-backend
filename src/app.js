@@ -29,6 +29,10 @@ import emailSubscriptionRouter from "./routes/email-subscription.routes.js";
 import { fetchJobs } from "./controllers/jobs.controllers.js";
 import contactRouter from "./routes/contact.routes.js";
 
+app.listen(process.env.PORT, () => {
+  console.log('Server is running');
+});
+
 app.get("/", async (req, res) => {
   const serverIp =
     Object.values(os.networkInterfaces())
