@@ -12,6 +12,8 @@ app.use(
   cors({
     origin: [
       "https://minijobgermany.de",
+      "http://minijobgermany.de",
+      "https://minijobgermany.de/",
       "https://www.minijobgermany.de",
       "http://127.0.0.1:8081",
       "http://127.0.0.1:8080",
@@ -25,8 +27,12 @@ app.use(
 //routes import
 import jobRouter from "./routes/jobs.routes.js";
 import emailSubscriptionRouter from "./routes/email-subscription.routes.js";
-import { fetchJobs } from "./controllers/jobs.controllers.js";
+// import { fetchJobs } from "./controllers/jobs.controllers.js";
 import contactRouter from "./routes/contact.routes.js";
+
+app.listen(8000, () => {
+  console.log('Server is running', 8000);
+});
 
 app.get("/", async (req, res) => {
   const serverIp =
@@ -34,7 +40,7 @@ app.get("/", async (req, res) => {
       .flat()
       .find((iface) => iface.family === "IPv4" && !iface.internal)?.address ||
     "Unknown IP";
-  await fetchJobs();
+  // await fetchJobs();
   res.send({
     message: "Server is running",
     serverIp,

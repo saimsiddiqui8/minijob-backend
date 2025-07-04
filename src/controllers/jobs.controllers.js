@@ -221,65 +221,65 @@ export const getJobsByFilter = tryCatch(async (req, res) => {
 // const feedUrl = 'https://feed.stepstone.de/partner/files/FD6E3D39-9567-4371-AF2F-4C2EA060ABE0/638D844C-A648-4FCF-94B2-BEB217B0C197';
 const feedUrl =
     "https://de.jooble.org/affiliate_feed/KgYKLwsbCgIXNQIFKBgrMCg+GCsh.xml";
-export const fetchJobs = async () => {
-    try {
-        console.log("Fetching jobs...");
+// export const fetchJobs = async () => {
+//     try {
+//         console.log("Fetching jobs...");
 
-        const response = await axios.get(feedUrl, { responseType: "stream" });
-        const parser = new SAXParser(true);
+//         const response = await axios.get(feedUrl, { responseType: "stream" });
+//         const parser = new SAXParser(true);
 
-        let currentJob = null;
-        let currentTag = "";
+//         let currentJob = null;
+//         let currentTag = "";
 
 
-        // Pause the stream reference for control
-        const stream = response.data;
+//         // Pause the stream reference for control
+//         const stream = response.data;
 
-        parser.onopentag = (node) => {
-            if (node.name === "job") {
-                currentJob = {};
-            }
-            currentTag = node.name;
-        };
+//         parser.onopentag = (node) => {
+//             if (node.name === "job") {
+//                 currentJob = {};
+//             }
+//             currentTag = node.name;
+//         };
 
-        parser.oncdata = (cdata) => {
-            if (currentJob && currentTag) {
-                currentJob[currentTag] = (currentJob[currentTag] || "") + cdata.trim();
-            }
-        };
+//         parser.oncdata = (cdata) => {
+//             if (currentJob && currentTag) {
+//                 currentJob[currentTag] = (currentJob[currentTag] || "") + cdata.trim();
+//             }
+//         };
 
-        parser.onclosetag = async (tagName) => {
-            if (tagName === "job" && currentJob && currentJob.guid) {
-                try {
-                    if (!currentJob.guid) return;
-                    await Job.updateOne(
-                        { guid: currentJob.guid },
-                        { $set: currentJob },
-                        { upsert: true },
-                    );
-                    console.log(`✅ Upserted job: ${currentJob.guid}`);
-                } catch (err) {
-                    console.error("❌ Upsert failed for job:", err, currentJob);
-                }
+//         parser.onclosetag = async (tagName) => {
+//             if (tagName === "job" && currentJob && currentJob.guid) {
+//                 try {
+//                     if (!currentJob.guid) return;
+//                     await Job.updateOne(
+//                         { guid: currentJob.guid },
+//                         { $set: currentJob },
+//                         { upsert: true },
+//                     );
+//                     console.log(`✅ Upserted job: ${currentJob.guid}`);
+//                 } catch (err) {
+//                     console.error("❌ Upsert failed for job:", err, currentJob);
+//                 }
 
-                currentJob = null;
-            }
-            currentTag = "";
-        };
+//                 currentJob = null;
+//             }
+//             currentTag = "";
+//         };
 
-        // Pipe chunks to parser
-        stream.on("data", (chunk) => {
-            parser.write(chunk.toString());
-        });
+//         // Pipe chunks to parser
+//         stream.on("data", (chunk) => {
+//             parser.write(chunk.toString());
+//         });
 
-        stream.on("end", () => {
-            parser.close();
-            console.log("✅ Stream ended");
-        });
-    } catch (error) {
-        console.error("❌ Error fetching jobs:", error.message);
-    }
-};
+//         stream.on("end", () => {
+//             parser.close();
+//             console.log("✅ Stream ended");
+//         });
+//     } catch (error) {
+//         console.error("❌ Error fetching jobs:", error.message);
+//     }
+// };
 
 // Express endpoint to serve the jobs
 export const getJoobleJobs = tryCatch(async (req, res) => {
@@ -299,7 +299,6 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     res.status(200).json({ jobs: paginatedJobs });
 });
 
-// fetchJobs();
 
 export const suggestions = tryCatch(async (req, res) => {
     const { city } = req.query;
@@ -407,6 +406,9 @@ export const searchJobs = tryCatch(async (req, res) => {
 
     // if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
+    if (!q && !city && !jobtype) {
+        return res.status(400).json({ error: "At least one of 'q', 'city', or 'jobtype' is required" });
+    }
     const filters = [];
 
     if (q) {
@@ -415,8 +417,36 @@ export const searchJobs = tryCatch(async (req, res) => {
     }
 
     if (city) {
-        const cityRegex = new RegExp(city, "i");
-        filters.push({ city: { $regex: cityRegex } });
+        // const cityRegex = new RegExp(city, "i");
+        // filters.push({
+        //     $or: [
+        //         { city: { $regex: cityRegex } },
+        //         { state: { $regex: cityRegex } }
+        //     ]
+        // });
+        filters.push({
+            $or: [
+                { city: { $regex: `^${city}$`, $options: "i" } },
+                { state: { $regex: `^${city}$`, $options: "i" } }
+            ]
+        });
+    }
+
+    if (jobtype) {
+        const typesArray = Array.isArray(jobtype)
+            ? jobtype
+            : typeof jobtype === "string"
+                ? jobtype.split(",").map(t => t.trim())
+                : [];
+
+        const invalidTypes = typesArray.filter(type => !allowedTypes.includes(type));
+        if (invalidTypes.length > 0) {
+            return res.status(404).json(new ApiResponse(404, "Invalid Job type(s): " + invalidTypes.join(", ")));
+        }
+
+        if (typesArray.length > 0) {
+            filters.push({ jobtype: { $in: typesArray } });
+        }
     }
 
     // 🔹 Filter: jobType (Full-time, Part-time, etc.)
