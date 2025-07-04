@@ -9,6 +9,7 @@ import {
   suggestions,
   getJobsCountByType,
   citySuggestions,
+  getRecentJobStats,
 } from "../controllers/jobs.controllers.js";
 import { tryCatch } from "../utils/tryCatch.js";
 
@@ -23,5 +24,8 @@ jobsRouter.route("/filter").get(tryCatch(getJobsByFilter));
 jobsRouter.route("/suggestions").get(tryCatch(suggestions));
 jobsRouter.route("/city-suggestions").get(tryCatch(citySuggestions));
 jobsRouter.route("/delete-job/:id").delete(tryCatch(deleteJob));
+
+
+jobsRouter.route("/get-time-stats").get(tryCatch(getRecentJobStats));
 
 export default jobsRouter;

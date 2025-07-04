@@ -288,12 +288,13 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    await fetchJobs();
+    // await fetchJobs();
     const paginatedJobs = cachedJobs.slice(start, end);
     const builder = new XMLBuilder();
     const xmlChunk = builder.build({ jobs: { job: paginatedJobs } });
 
     res.setHeader("Content-Type", "application/xml");
+
     // res.status(200).send(xmlChunk);
     res.status(200).json({ jobs: paginatedJobs });
 });
@@ -301,7 +302,7 @@ export const getJoobleJobs = tryCatch(async (req, res) => {
 // fetchJobs();
 
 export const suggestions = tryCatch(async (req, res) => {
-    const { city, } = req.query;
+    const { city } = req.query;
     const q = req.query.q?.toString().trim() || "";
 
     if (!q || q.trim().length < 2) {
@@ -322,7 +323,7 @@ export const suggestions = tryCatch(async (req, res) => {
     }
 
     const suggestions = await Job.find(query)
-        .select("title")
+        .select("title city")
         .lean();
 
     return res.status(200).json(
@@ -351,15 +352,60 @@ export const citySuggestions = tryCatch(async (req, res) => {
 
     const limitedCities = cities.slice(0, 10);
 
-    return res.status(200).json(
-        new ApiResponse(200, "Cities retrieved successfully", limitedCities),
-    );
+    res.json({
+        statusCode: 200,
+        success: true,
+        data: limitedCities.map(city => ({ city }))
+    });
+});
+
+
+export const getRecentJobStats = tryCatch(async (req, res) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6); // today + 6 = 7 days total
+
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(today.getDate() - 9);
+
+    const thirtyDaysAgo = new Date();
+    tenDaysAgo.setDate(today.getDate() - 29);
+
+    const [todayCount, last7DaysCount, last10DaysCount] = await Promise.all([
+        Job.countDocuments({ createdAt: { $gte: today } }),
+        Job.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+        Job.countDocuments({ createdAt: { $gte: tenDaysAgo } }),
+        Job.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+    ]);
+
+
+    res.json({
+        statusCode: 200,
+        success: true,
+        data: {
+            today: todayCount,
+            last7Days: last7DaysCount,
+            last10Days: last10DaysCount,
+            last30Days: last10DaysCount,
+        }
+    });
 });
 
 export const searchJobs = tryCatch(async (req, res) => {
-    const { q, page = 1, limit = 20, city } = req.query;
+    const {
+        q,
+        city,
+        page = 1,
+        limit = 20,
+        datePosted,
+        jobType,
+        experience,
+        salaryRange,
+    } = req.query;
 
-    if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
+    // if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
     const filters = [];
 
@@ -371,6 +417,42 @@ export const searchJobs = tryCatch(async (req, res) => {
     if (city) {
         const cityRegex = new RegExp(city, "i");
         filters.push({ city: { $regex: cityRegex } });
+    }
+
+    // 🔹 Filter: jobType (Full-time, Part-time, etc.)
+    if (jobType) {
+        filters.push({ jobtype: jobType });
+    }
+
+    // 🔹 Filter: experience (assuming it's stored inside description or structured field)
+    if (experience) {
+        const expRegex = new RegExp(experience, "i");
+        filters.push({ description: { $regex: expRegex } });
+    }
+
+    // 🔹 Filter: salaryRange ("0-2000", "3000-5000", etc.)
+    if (salaryRange && typeof salaryRange === "string") {
+        const [min, max] = salaryRange.split("-").map(Number);
+        if (!isNaN(min) && !isNaN(max)) {
+            filters.push({ cpc: { $gte: min, $lte: max } });
+        }
+    }
+
+    // 🔹 Filter: datePosted ("Last 24 hours", "Last 7 days", etc.)
+    if (datePosted) {
+        const now = new Date();
+        const timeMap = {
+            "Last 24 hours": 1,
+            "Last 3 days": 3,
+            "Last 7 days": 7,
+            "Last 30 days": 30,
+        };
+
+        const days = timeMap[datePosted];
+        if (days) {
+            const fromDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+            filters.push({ date_updated: { $gte: fromDate } });
+        }
     }
 
     const query = filters.length > 0 ? { $and: filters } : {};

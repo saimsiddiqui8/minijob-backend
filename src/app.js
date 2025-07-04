@@ -15,7 +15,8 @@ app.use(
       "https://www.minijobgermany.de",
       "http://127.0.0.1:8081",
       "http://127.0.0.1:8080",
-      "http://192.168.0.105:8081"
+      "http://192.168.0.105:8081",
+      "http://localhost:3000"
     ],
     credentials: true,
   }),
