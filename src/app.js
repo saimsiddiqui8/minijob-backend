@@ -12,6 +12,8 @@ app.use(
   cors({
     origin: [
       "https://minijobgermany.de",
+      "https://jobs-berlin.vercel.app",
+      "http://jobs-berlin.vercel.app",
       "http://minijobgermany.de",
       "https://minijobgermany.de/",
       "https://www.minijobgermany.de",
