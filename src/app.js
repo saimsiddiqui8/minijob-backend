@@ -8,6 +8,7 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(morgan("combined"));
 app.set("trust proxy", true);
+
 // app.use(
 //   cors({
 //     origin: [
@@ -43,6 +44,10 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // TEMP for test only!
+  next();
+});
 
 //routes import
 import jobRouter from "./routes/jobs.routes.js";
