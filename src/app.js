@@ -20,7 +20,8 @@ app.use(
       "http://127.0.0.1:8081",
       "http://127.0.0.1:8080",
       "http://192.168.0.105:8081",
-      "http://localhost:3000"
+      "https://jobs-berlin.vercel.app/",
+      "https://jobs-berlin.vercel.app/*"
     ],
     credentials: true,
   }),
