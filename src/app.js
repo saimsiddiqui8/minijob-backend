@@ -4,10 +4,8 @@ import os from "os";
 import morgan from "morgan";
 
 const app = express();
-app.use(express.static("public"));
-app.use(express.json());
-app.use(morgan("combined"));
 app.set("trust proxy", true);
+
 
 // ✅ Manual CORS fallback (because vercel sometimes skips cors middleware)
 app.use((req, res, next) => {
@@ -32,6 +30,9 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(express.static("public"));
+app.use(express.json());
+app.use(morgan("combined"));
 
 //routes import
 import jobRouter from "./routes/jobs.routes.js";
