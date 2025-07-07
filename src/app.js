@@ -30,6 +30,7 @@ app.set("trust proxy", true);
 const allowedOrigins = [
   "https://minijobgermany.de",
   "https://jobs-berlin.vercel.app",
+  'https://www.jobs-berlin.vercel.app',
   "http://localhost:3000", // for local dev
 ];
 
