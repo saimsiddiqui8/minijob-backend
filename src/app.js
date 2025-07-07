@@ -8,24 +8,40 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(morgan("combined"));
 app.set("trust proxy", true);
-app.use(
-  cors({
-    origin: [
-      "https://minijobgermany.de",
-      "https://jobs-berlin.vercel.app",
-      "http://jobs-berlin.vercel.app",
-      "http://minijobgermany.de",
-      "https://minijobgermany.de/",
-      "https://www.minijobgermany.de",
-      "http://127.0.0.1:8081",
-      "http://127.0.0.1:8080",
-      "http://192.168.0.105:8081",
-      "https://jobs-berlin.vercel.app/",
-      "https://jobs-berlin.vercel.app/*"
-    ],
-    credentials: true,
-  }),
-);
+// app.use(
+//   cors({
+//     origin: [
+//       "https://minijobgermany.de",
+//       "https://jobs-berlin.vercel.app",
+//       "http://jobs-berlin.vercel.app",
+//       "http://minijobgermany.de",
+//       "https://minijobgermany.de/",
+//       "https://www.minijobgermany.de",
+//       "http://127.0.0.1:8081",
+//       "http://127.0.0.1:8080",
+//       "http://192.168.0.105:8081",
+//       "https://jobs-berlin.vercel.app/",
+//       "https://jobs-berlin.vercel.app/*"
+//     ],
+//     credentials: true,
+//   }),
+// );
+
+const allowedOrigins = [
+  "https://minijobgermany.de",
+  "https://jobs-berlin.vercel.app",
+  "http://localhost:3000", // for local dev
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
 
 //routes import
 import jobRouter from "./routes/jobs.routes.js";
