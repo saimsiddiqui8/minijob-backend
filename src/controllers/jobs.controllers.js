@@ -406,9 +406,9 @@ export const searchJobs = tryCatch(async (req, res) => {
 
     // if (!q && !city) return res.status(400).json({ error: "Query parameter 'q' is required" });
 
-    if (!q && !city && !jobtype) {
-        return res.status(400).json({ error: "At least one of 'q', 'city', or 'jobtype' is required" });
-    }
+    // if (!q && !city) {
+    //     return res.status(400).json({ error: "At least one of 'q', 'city', or 'jobtype' is required" });
+    // }
     const filters = [];
 
     if (q) {
@@ -432,22 +432,22 @@ export const searchJobs = tryCatch(async (req, res) => {
         });
     }
 
-    if (jobtype) {
-        const typesArray = Array.isArray(jobtype)
-            ? jobtype
-            : typeof jobtype === "string"
-                ? jobtype.split(",").map(t => t.trim())
-                : [];
+    // if (jobType) {
+    //     const typesArray = Array.isArray(jobType)
+    //         ? jobType
+    //         : typeof jobType === "string"
+    //             ? jobType.split(",").map(t => t.trim())
+    //             : [];
 
-        const invalidTypes = typesArray.filter(type => !allowedTypes.includes(type));
-        if (invalidTypes.length > 0) {
-            return res.status(404).json(new ApiResponse(404, "Invalid Job type(s): " + invalidTypes.join(", ")));
-        }
+    //     const invalidTypes = typesArray.filter(type => !allowedTypes.includes(type));
+    //     if (invalidTypes.length > 0) {
+    //         return res.status(404).json(new ApiResponse(404, "Invalid Job type(s): " + invalidTypes.join(", ")));
+    //     }
 
-        if (typesArray.length > 0) {
-            filters.push({ jobtype: { $in: typesArray } });
-        }
-    }
+    //     if (typesArray.length > 0) {
+    //         filters.push({ jobtype: { $in: typesArray } });
+    //     }
+    // }
 
     // 🔹 Filter: jobType (Full-time, Part-time, etc.)
     if (jobType) {
