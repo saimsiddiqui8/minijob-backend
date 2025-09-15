@@ -53,6 +53,11 @@ const JobSchema = new Schema({
     type: Boolean,
     default: false
   },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: '10d'
+  }
 });
 
 export const Job = mongoose.model("Job", JobSchema);

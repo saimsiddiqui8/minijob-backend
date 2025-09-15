@@ -4,24 +4,35 @@ import os from "os";
 import morgan from "morgan";
 
 const app = express();
+app.set("trust proxy", true);
+
+
+// ✅ Manual CORS fallback (because vercel sometimes skips cors middleware)
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// If still using cors() as well
+app.use(cors({
+  origin: [
+    "https://jobs-berlin.vercel.app",
+    "https://www.jobs-berlin.vercel.app",
+    "https://minijobgermany.de",
+    "http://localhost:3000"
+  ],
+  credentials: true,
+}));
+
 app.use(express.static("public"));
 app.use(express.json());
 app.use(morgan("combined"));
-app.set("trust proxy", true);
-app.use(
-  cors({
-    origin: [
-      "https://minijobgermany.de",
-      "http://minijobgermany.de",
-      "https://minijobgermany.de/",
-      "https://www.minijobgermany.de",
-      "http://127.0.0.1:8081",
-      "http://127.0.0.1:8080",
-      "http://192.168.0.105:8081"
-    ],
-    credentials: true,
-  }),
-);
 
 //routes import
 import jobRouter from "./routes/jobs.routes.js";

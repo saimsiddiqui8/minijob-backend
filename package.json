@@ -1,7 +1,7 @@
 {
-  "name": "careerconnect",
+  "name": "minijobgermany",
   "version": "1.0.0",
-  "description": "Creating a backend of careerconnect for a React Admin Dashboard and Next.js website hoisted on www.careerconnect.com",
+  "description": "Creating a backend of minijobgermany for a React Admin Dashboard and Next.js website hoisted on www.minijobgermany.de",
   "type": "module",
   "main": "index.js",
   "scripts": {
