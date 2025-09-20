@@ -1,6 +1,6 @@
 {
     "version": 2,
-    "name": "ims-backend",
+    "name": "minijob-backend",
     "builds": [
         {
             "src": "src/index.js",
